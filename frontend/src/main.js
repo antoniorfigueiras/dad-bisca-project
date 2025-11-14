@@ -1,12 +1,15 @@
 import { createApp } from 'vue'
-import { createPinia } from 'pinia'
+import AboutPage from '@/pages/about/AboutPage.vue'
 
-import App from './App.vue'
-import router from './router'
+// Importa o cliente io
+import { io } from 'socket.io-client' //
 
-const app = createApp(App)
+const app = createApp(AboutPage)
 
-app.use(createPinia())
-app.use(router)
+// Conecta ao nosso servidor WebSocket (que está na porta 3000)
+const socket = io('http://localhost:3000') //
+
+// Fornece o socket a todos os componentes
+app.provide('socket', socket) //
 
 app.mount('#app')
