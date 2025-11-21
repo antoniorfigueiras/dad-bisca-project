@@ -1,33 +1,73 @@
 <template>
-  <div>
-    <h1>Teste de Conexão API</h1>
-    <div v-if="metadata">
-      <p><strong>Nome da API:</strong> {{ metadata.name }}</p>
-      <p><strong>Versão:</strong> {{ metadata.version }}</p>
-    </div>
-    <div v-else>
-      <p>A carregar dados da API...</p>
-    </div>
-  </div>
+  <div class="grid gap-6 md:grid-cols-2">
+    
+    <Card>
+      <CardHeader>
+        <CardTitle>Status da API (Laravel)</CardTitle>
+      </CardHeader>
+      <CardContent>
+        <div v-if="metadata" class="space-y-2">
+          <div class="flex justify-between border-b pb-2">
+            <span class="font-medium">Nome:</span>
+            <span>{{ metadata.name }}</span>
+          </div>
+          <div class="flex justify-between">
+            <span class="font-medium">Versão:</span>
+            <span class="bg-green-100 text-green-800 px-2 py-0.5 rounded text-xs font-bold">{{ metadata.version }}</span>
+          </div>
+        </div>
+        <div v-else class="text-muted-foreground italic">
+          A carregar dados...
+        </div>
+      </CardContent>
+    </Card>
 
-  <hr>
+    <Card>
+      <CardHeader>
+        <CardTitle>Status WebSocket (Node.js)</CardTitle>
+      </CardHeader>
+      <CardContent class="space-y-4">
+        <div class="flex items-center gap-2">
+          <div 
+            class="h-3 w-3 rounded-full"
+            :class="socket.connected ? 'bg-green-500' : 'bg-red-500'"
+          ></div>
+          <span class="font-medium">{{ socketStatus }}</span>
+        </div>
 
-  <div>
-    <h2>Teste de WebSockets</h2>
-    <p><strong>Estado:</strong> {{ socketStatus }}</p>
+        <div class="flex gap-2">
+          <Input v-model="message" placeholder="Mensagem de teste..." />
+          <Button @click="sendMessage">Enviar Echo</Button>
+        </div>
+        
+        <div v-if="receivedMessage" class="mt-4 rounded bg-slate-100 p-3 text-sm">
+          <strong>Servidor respondeu:</strong> {{ receivedMessage }}
+        </div>
+      </CardContent>
+    </Card>
 
-    <input v-model="message" placeholder="Escreve uma mensagem" />
-    <button @click="sendMessage">Enviar Echo</button>
-
-    <p><strong>Mensagem recebida do servidor:</strong> {{ receivedMessage }}</p>
   </div>
 </template>
 
 <script setup>
 import { ref, onMounted, inject, computed } from 'vue'
+import { Button } from '@/components/ui/button'
+import { Input } from '@/components/ui/input'
+import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card'
 
-// --- Lógica da API (que já tínhamos) ---
 const metadata = ref(null)
+const message = ref('')
+const receivedMessage = ref('')
+const socket = inject('socket')
+
+const socketStatus = computed(() => socket.connected ? 'Conectado' : 'Desconectado')
+
+const sendMessage = () => {
+  if (message.value) socket.emit('echo', message.value)
+}
+
+socket.on('echo', (msg) => receivedMessage.value = msg)
+
 onMounted(async () => {
   try {
     const response = await fetch('http://localhost:8000/api/metadata', {
@@ -39,29 +79,4 @@ onMounted(async () => {
     console.error('Erro API:', error)
   }
 })
-
-// --- Lógica dos WebSockets (Nova) ---
-const message = ref('')
-const receivedMessage = ref('')
-
-// Injeta o socket que fornecemos no main.js 
-const socket = inject('socket')
-
-const socketStatus = computed(() => {
-  return socket.connected ? 'Conectado' : 'Desconectado' // [cite: 656, 657]
-})
-
-// Envia uma mensagem para o evento "echo" [cite: 651, 652]
-const sendMessage = () => {
-  socket.emit('echo', message.value)
-}
-
-// Ouve por mensagens de "echo" vindas do servidor [cite: 659]
-socket.on('echo', (msg) => {
-  receivedMessage.value = msg
-})
 </script>
-
-<style>
-  hr { margin: 20px 0; }
-</style>
