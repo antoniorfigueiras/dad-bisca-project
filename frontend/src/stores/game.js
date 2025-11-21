@@ -1,24 +1,13 @@
 import { defineStore } from 'pinia'
-import { ref, computed } from 'vue'
+import { ref, computed, watch } from 'vue'
 
-// Valores das cartas na Bisca
 const CARD_VALUES = {
-  'A': 11, // Ás
-  '7': 10, // Sete/Manilha
-  'K': 4,  // Rei
-  'J': 3,  // Valete
-  'Q': 2,  // Dama
-  '6': 0,  // Sem valor
-  '5': 0,
-  '4': 0,
-  '3': 0,
-  '2': 0,
+  'A': 11, '7': 10, 'K': 4, 'J': 3, 'Q': 2,
+  '6': 0, '5': 0, '4': 0, '3': 0, '2': 0,
 }
-
 const SUITS = ['Copas', 'Ouros', 'Paus', 'Espadas']
 const RANKS = ['A', '7', 'K', 'J', 'Q', '6', '5', '4', '3', '2']
 
-// Função auxiliar para baralhar
 function shuffle(array) {
   for (let i = array.length - 1; i > 0; i--) {
     const j = Math.floor(Math.random() * (i + 1));
@@ -27,59 +16,99 @@ function shuffle(array) {
 }
 
 export const useGameStore = defineStore('game', () => {
-  // Variantes do jogo (Bisca de 3 ou 9)
+  // Variantes
   const variants = ref([
     { value: '3', label: 'Bisca de 3', description: '3 cartas na mão' },
     { value: '9', label: 'Bisca de 9', description: '9 cartas na mão' }
   ])
-  const selectedVariant = ref('9') // Começa com Bisca de 9 por defeito
+  
+  // Persistência da variante
+  const savedVariant = localStorage.getItem('bisca_variant')
+  const selectedVariant = ref(savedVariant || '9')
+
+  watch(selectedVariant, (newVal) => {
+    localStorage.setItem('bisca_variant', newVal)
+  })
 
   // --- Estado do Jogo ---
-  const deck = ref([])         // O monte de cartas
-  const playerHand = ref([])   // A mão do jogador
-  const botHand = ref([])      // A mão do adversário (Bot)
-  const trumpSuit = ref(null)  // O naipe do trunfo
-  const trumpCard = ref(null)  // A carta de trunfo visível no fundo
+  const deck = ref([])
+  const playerHand = ref([])
+  const botHand = ref([])
+  const table = ref([])
+  const trumpSuit = ref(null)
+  const trumpCard = ref(null)
+  
+  // Turno: 'player' ou 'bot'
+  const currentTurn = ref('player')
 
-  // Calcula a pontuação atual na mão do jogador (apenas para debug)
   const playerScore = computed(() => {
     return playerHand.value.reduce((total, card) => total + CARD_VALUES[card.rank], 0)
   })
 
-  // --- AÇÃO: Iniciar o Jogo ---
+  // --- Setup ---
   const setupGame = () => {
-    // 1. Criar o baralho de 40 cartas
     let initialDeck = []
     let id = 0
     for (const suit of SUITS) {
       for (const rank of RANKS) {
-        // Cria cada carta com ID único, naipe, valor e pontos
         initialDeck.push({ id: id++, suit, rank, points: CARD_VALUES[rank] })
       }
     }
-
-    // 2. Baralhar
     shuffle(initialDeck)
     deck.value = initialDeck
 
-    // 3. Definir o Trunfo (tira a última carta)
     const trunfo = deck.value.pop()
     trumpSuit.value = trunfo.suit
     trumpCard.value = trunfo 
-    
-    // Coloca o trunfo no início do array (fundo do baralho visual)
     deck.value.unshift(trunfo)
     
-    // 4. Distribuir as cartas (3 ou 9 conforme a variante)
     const numCardsToDeal = parseInt(selectedVariant.value)
     
-    // Splice remove as cartas do baralho e move para as mãos
     playerHand.value = deck.value.splice(deck.value.length - numCardsToDeal, numCardsToDeal)
     botHand.value = deck.value.splice(deck.value.length - numCardsToDeal, numCardsToDeal)
     
-    console.log(`Jogo iniciado: Bisca de ${numCardsToDeal}`)
-    console.log('Trunfo:', trumpSuit.value)
-    console.log('Mão do Jogador:', playerHand.value)
+    table.value = []
+    currentTurn.value = 'player'
+    console.log(`Jogo iniciado. Trunfo: ${trumpSuit.value}`)
+  }
+
+  // --- TURNO DO JOGADOR ---
+  const playCard = (card) => {
+    // Validação de Turno
+    if (currentTurn.value !== 'player') return 
+
+    const index = playerHand.value.findIndex(c => c.id === card.id)
+    
+    if (index !== -1) {
+      // REMOVER DA MÃO DO JOGADOR
+      playerHand.value.splice(index, 1)
+      
+      // Adicionar à Mesa
+      table.value.push({ ...card, playedBy: 'player' })
+      
+      // Passar a vez
+      currentTurn.value = 'bot'
+      
+      // O Bot joga após 1 segundo
+      setTimeout(botPlay, 1000)
+    }
+  }
+
+  // --- TURNO DO BOT ---
+  const botPlay = () => {
+    if (botHand.value.length === 0) return
+
+    // Joga a primeira carta
+    const cardToPlay = botHand.value[0]
+    
+    // Remove da mão do bot
+    botHand.value.splice(0, 1)
+
+    // Adiciona à mesa
+    table.value.push({ ...cardToPlay, playedBy: 'bot' })
+
+    // Devolve a vez ao jogador
+    currentTurn.value = 'player'
   }
 
   return {
@@ -88,9 +117,12 @@ export const useGameStore = defineStore('game', () => {
     deck,
     playerHand,
     botHand,
+    table,
     trumpSuit,
     trumpCard,
     playerScore,
-    setupGame
+    currentTurn,
+    setupGame,
+    playCard
   }
 })
