@@ -6,7 +6,7 @@ import { ref, computed, watch } from 'vue'
 const SUITS = ['Copas', 'Ouros', 'Paus', 'Espadas']
 const RANKS = ['A', '7', 'K', 'J', 'Q', '6', '5', '4', '3', '2']
 
-// Pontos (Total = 120) [cite: 454-457]
+// Pontos (Total = 120) 
 const CARD_POINTS = {
   'A': 11, '7': 10, 'K': 4, 'J': 3, 'Q': 2,
   '6': 0, '5': 0, '4': 0, '3': 0, '2': 0,
