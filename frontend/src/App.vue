@@ -53,6 +53,7 @@
           </div>
 
         </nav>
+        <CardPreloader />
       </div>
     </header>
 
@@ -64,6 +65,7 @@
 
 <script setup>
 import { RouterLink, RouterView, useRouter } from 'vue-router'
+import CardPreloader from '@/components/CardPreloader.vue'
 import { useAuthStore } from '@/stores/auth'
 
 const authStore = useAuthStore()

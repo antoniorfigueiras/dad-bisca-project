@@ -12,24 +12,33 @@ const router = createRouter({
       path: '/',
       name: 'home',
       component: HomePage,
+      meta: { title: 'Bisca DAD' },
     },
     {
       path: '/login',
       name: 'login',
       component: LoginPage,
+      meta: { title: 'Bisca DAD - Login' },
     },
     {
       path: '/about-test', // Rota para a nossa página de teste
       name: 'about-test',
       component: AboutPage,
+      meta: { title: 'Bisca DAD - Debug' },
     },
 
     {
       path: '/game/singleplayer',
       name: 'singleplayer',
       component: SingleplayerGamePage,
+      meta: { title: 'Bisca DAD - Jogo Singleplayer' },
     },
   ],
 })
 
+
+router.beforeEach((to, from, next) => {
+  document.title = to.meta.title || 'Bisca DAD'
+  next()
+})
 export default router
